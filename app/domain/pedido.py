@@ -10,7 +10,5 @@ class Pedido(SQLModel, table=True):
     usuario_id: int
 
 
-# DTO para creación de pedidos
 class PedidoCreate(SQLModel):
-    total: float
     usuario_id: int

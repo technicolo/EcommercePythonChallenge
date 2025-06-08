@@ -1,7 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
+from app.domain.detalle_pedido import PedidoConDetallesDTO
 from app.domain.usuario import Usuario
 from app.services import usuario_service
+from app.domain.pedido import Pedido
+from app.services import pedido_service
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -37,3 +40,7 @@ def eliminar(usuario_id: int):
     if not usuario_service.eliminar_usuario(usuario_id):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return {"mensaje": "Usuario eliminado"}
+
+@router.get("/{usuario_id}/pedidos", response_model=List[PedidoConDetallesDTO])
+def listar_pedidos_usuario(usuario_id: int):
+    return pedido_service.obtener_pedidos_con_detalles_por_usuario(usuario_id)

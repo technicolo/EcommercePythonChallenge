@@ -2,14 +2,24 @@ from sqlmodel import Session, select
 from app.domain.detalle_pedido import DetallePedido
 from app.persistence.db import get_session
 from typing import List, Optional
+from app.services.pedido_service import actualizar_total_pedido
+from fastapi import HTTPException
+from app.domain.pedido import Pedido
+
 
 
 def crear_detalle(detalle: DetallePedido) -> DetallePedido:
     with get_session() as session:
+        pedido = session.get(Pedido, detalle.pedido_id)
+        if not pedido:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado para este detalle")
+
         session.add(detalle)
         session.commit()
         session.refresh(detalle)
+        actualizar_total_pedido(detalle.pedido_id)
         return detalle
+
 
 
 def obtener_detalles() -> List[DetallePedido]:

@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,APIRouter,UploadFile, File
 from typing import List
 from app.domain.pedido import Pedido, PedidoCreate
-from app.services import pedido_service
+from app.services import pedido_service 
+from app.domain.detalle_pedido import PedidoConDetallesDTO
+from app.utils.csv_parser import parse_csv_to_productos
+from app.persistence.db import get_session
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
-
 
 @router.post("/", response_model=Pedido)
 def crear(pedido: PedidoCreate):
@@ -16,12 +18,9 @@ def listar():
     return pedido_service.obtener_pedidos()
 
 
-@router.get("/{pedido_id}", response_model=Pedido)
-def obtener(pedido_id: int):
-    pedido = pedido_service.obtener_pedido_por_id(pedido_id)
-    if not pedido:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado")
-    return pedido
+@router.get("/{pedido_id}", response_model=PedidoConDetallesDTO)
+def obtener_pedido(pedido_id: int):
+    return pedido_service.obtener_pedido_con_detalles(pedido_id)
 
 
 @router.put("/{pedido_id}", response_model=Pedido)
@@ -37,3 +36,9 @@ def eliminar(pedido_id: int):
     if not pedido_service.eliminar_pedido(pedido_id):
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     return {"mensaje": "Pedido eliminado"}
+
+
+
+productos_router = APIRouter(prefix="/productos", tags=["Productos"])
+
+
