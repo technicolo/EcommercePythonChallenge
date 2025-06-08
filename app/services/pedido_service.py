@@ -3,12 +3,16 @@ from app.domain.pedido import Pedido, PedidoCreate
 from app.persistence.db import get_session
 from typing import List, Optional
 from datetime import datetime
+from app.domain.usuario import Usuario
+from fastapi import HTTPException
 
 
 def crear_pedido(pedido_in: PedidoCreate) -> Pedido:
     with get_session() as session:
-        # Validar que el usuario existe (opcional si querés prevenir errores)
-        result = session.exec(select(Pedido).where(Pedido.usuario_id == pedido_in.usuario_id)).all()
+        # Verificar existencia del usuario
+        usuario = session.get(Usuario, pedido_in.usuario_id)
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
         pedido = Pedido(
             fecha=datetime.utcnow(),
@@ -19,6 +23,7 @@ def crear_pedido(pedido_in: PedidoCreate) -> Pedido:
         session.commit()
         session.refresh(pedido)
         return pedido
+
 
 
 def obtener_pedidos() -> List[Pedido]:
