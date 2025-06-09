@@ -79,35 +79,30 @@ def obtener_pedidos_con_detalles_por_usuario(usuario_id: int) -> List[PedidoConD
         return resultado
 
 
-def actualizar_pedido(pedido_id: int, datos_actualizados: PedidoCreate) -> Pedido:
+def actualizar_pedido(pedido_id: int, datos: PedidoCreate):
     with get_session() as session:
         pedido = session.get(Pedido, pedido_id)
         if not pedido:
-            raise problem_detail_response(
-                status_code=404,
-                title="Recurso no encontrado",
-                detail="Pedido no encontrado",
-                instance=f"/pedidos/{pedido_id}"
-            )
-        pedido.total = datos_actualizados.total
-        pedido.usuario_id = datos_actualizados.usuario_id
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+        pedido.usuario_id = datos.usuario_id
+        session.add(pedido)
         session.commit()
         session.refresh(pedido)
         return pedido
     
 
-def eliminar_pedido(pedido_id: int) -> None:
+from fastapi import HTTPException
+
+def eliminar_pedido(pedido_id: int):
     with get_session() as session:
         pedido = session.get(Pedido, pedido_id)
         if not pedido:
-            raise problem_detail_response(
-                status_code=404,
-                title="Recurso no encontrado",
-                detail="Pedido no encontrado",
-                instance=f"/pedidos/{pedido_id}"
-            )
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
         session.delete(pedido)
         session.commit()
+        return True
+
 
 
 def obtener_pedidos_por_usuario(usuario_id: int) -> List[Pedido]:
