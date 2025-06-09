@@ -1,126 +1,98 @@
+# app/services/pedido_service.py
 from typing import List, Optional
 from datetime import datetime
 from sqlmodel import Session, select
 from fastapi import HTTPException
-
 from app.domain.pedido import Pedido, PedidoCreate
 from app.domain.detalle_pedido import DetallePedido, PedidoConDetallesDTO, DetallePedidoDTO
 from app.domain.usuario import Usuario
-from app.persistence.db import get_session
-from app.utils.ProblemDetailsException  import problem_detail_response
+from app.utils.ProblemDetailsException import problem_detail_response
 
-def crear_pedido(pedido_in: PedidoCreate) -> Pedido:
-    with get_session() as session:
-        usuario = session.get(Usuario, pedido_in.usuario_id)
+class PedidoService:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def crear_pedido(self, pedido_in: PedidoCreate) -> Pedido:
+        usuario = self.session.get(Usuario, pedido_in.usuario_id)
         if not usuario:
-           raise problem_detail_response(
-            status_code=404,
-            title="Recurso no encontrado",
-            detail="Usuario no encontrado",
-            instance="/pedidos"
-        )
+            raise problem_detail_response(
+                status_code=404,
+                title="Recurso no encontrado",
+                detail="Usuario no encontrado",
+                instance="/pedidos"
+            )
 
         pedido = Pedido(
             usuario_id=pedido_in.usuario_id,
             fecha=datetime.utcnow(),
-            total=0  # Se inicializa en 0
+            total=0
         )
-        session.add(pedido)
-        session.commit()
-        session.refresh(pedido)
+        self.session.add(pedido)
+        self.session.commit()
+        self.session.refresh(pedido)
         return pedido
 
-
-
-def obtener_pedidos(fecha_inicio: Optional[datetime] = None, fecha_fin: Optional[datetime] = None) -> List[Pedido]:
-    with get_session() as session:
+    def obtener_pedidos(self, fecha_inicio: Optional[datetime] = None, fecha_fin: Optional[datetime] = None) -> List[Pedido]:
         query = select(Pedido)
-
         if fecha_inicio:
             query = query.where(Pedido.fecha >= fecha_inicio)
         if fecha_fin:
             query = query.where(Pedido.fecha <= fecha_fin)
+        return self.session.exec(query).all()
 
-        return session.exec(query).all()
+    def obtener_pedido_con_detalles(self, pedido_id: int) -> PedidoConDetallesDTO:
+        pedido = self.session.get(Pedido, pedido_id)
+        if not pedido:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
-
-def obtener_pedidos_con_detalles_por_usuario(usuario_id: int) -> List[PedidoConDetallesDTO]:
-    with get_session() as session:
-        pedidos = session.exec(
-            select(Pedido).where(Pedido.usuario_id == usuario_id)
+        detalles = self.session.exec(
+            select(DetallePedido).where(DetallePedido.pedido_id == pedido_id)
         ).all()
 
-        resultado = []
+        detalles_dto = [
+            DetallePedidoDTO(
+                producto_id=d.producto_id,
+                cantidad=d.cantidad,
+                precio_unitario=d.precio_unitario
+            ) for d in detalles
+        ]
 
-        for pedido in pedidos:
-            detalles = session.exec(
-                select(DetallePedido).where(DetallePedido.pedido_id == pedido.id)
-            ).all()
+        return PedidoConDetallesDTO(
+            id=pedido.id,
+            usuario_id=pedido.usuario_id,
+            total=pedido.total,
+            fecha=pedido.fecha,
+            detalles=detalles_dto
+        )
 
-            detalles_dto = [
-                DetallePedidoDTO(
-                    producto_id=d.producto_id,
-                    cantidad=d.cantidad,
-                    precio_unitario=d.precio_unitario
-                )
-                for d in detalles
-            ]
-
-            pedido_con_detalles = PedidoConDetallesDTO(
-                id=pedido.id,
-                usuario_id=pedido.usuario_id,
-                total=pedido.total,
-                fecha=pedido.fecha,
-                detalles=detalles_dto
-            )
-
-            resultado.append(pedido_con_detalles)
-
-        return resultado
-
-
-def actualizar_pedido(pedido_id: int, datos: PedidoCreate):
-    with get_session() as session:
-        pedido = session.get(Pedido, pedido_id)
+    def actualizar_pedido(self, pedido_id: int, datos: PedidoCreate) -> Optional[Pedido]:
+        pedido = self.session.get(Pedido, pedido_id)
         if not pedido:
-            raise HTTPException(status_code=404, detail="Pedido no encontrado")
-
+            return None
         pedido.usuario_id = datos.usuario_id
-        session.add(pedido)
-        session.commit()
-        session.refresh(pedido)
+        self.session.commit()
+        self.session.refresh(pedido)
         return pedido
-    
 
-from fastapi import HTTPException
-
-def eliminar_pedido(pedido_id: int):
-    with get_session() as session:
-        pedido = session.get(Pedido, pedido_id)
+    def eliminar_pedido(self, pedido_id: int) -> bool:
+        pedido = self.session.get(Pedido, pedido_id)
         if not pedido:
-            raise HTTPException(status_code=404, detail="Pedido no encontrado")
-        session.delete(pedido)
-        session.commit()
+            return False
+        self.session.delete(pedido)
+        self.session.commit()
         return True
 
-
-
-def obtener_pedidos_por_usuario(usuario_id: int) -> List[Pedido]:
-    with get_session() as session:
+    def obtener_pedidos_por_usuario(self, usuario_id: int) -> List[Pedido]:
         query = select(Pedido).where(Pedido.usuario_id == usuario_id)
-        results = session.exec(query).all()
-        return results
+        return self.session.exec(query).all()
 
-
-def actualizar_total_pedido(pedido_id: int) -> None:
-    with get_session() as session:
-        detalles = session.exec(
+    def actualizar_total_pedido(self, pedido_id: int) -> None:
+        detalles = self.session.exec(
             select(DetallePedido).where(DetallePedido.pedido_id == pedido_id)
         ).all()
 
         total = sum(d.cantidad * d.precio_unitario for d in detalles)
-
-        pedido = session.get(Pedido, pedido_id)
+        pedido = self.session.get(Pedido, pedido_id)
         if not pedido:
             raise problem_detail_response(
                 status_code=404,
@@ -129,4 +101,4 @@ def actualizar_total_pedido(pedido_id: int) -> None:
                 instance=f"/pedidos/{pedido_id}/actualizar-total"
             )
         pedido.total = total
-        session.commit()
+        self.session.commit()

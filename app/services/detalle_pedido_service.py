@@ -1,56 +1,52 @@
+# app/services/detalle_pedido_service.py
 from sqlmodel import Session, select
-from app.domain.detalle_pedido import DetallePedido
-from app.persistence.db import get_session
 from typing import List, Optional
-from app.services.pedido_service import actualizar_total_pedido
 from fastapi import HTTPException
+from app.domain.detalle_pedido import DetallePedido
 from app.domain.pedido import Pedido
+from app.services.pedido_service import PedidoService
 
+class DetallePedidoService:
+    def __init__(self, session: Session):
+        self.session = session
+        self.pedido_service = PedidoService(session)
 
-
-def crear_detalle(detalle: DetallePedido) -> DetallePedido:
-    with get_session() as session:
-        pedido = session.get(Pedido, detalle.pedido_id)
+    def crear_detalle(self, detalle: DetallePedido) -> DetallePedido:
+        pedido = self.session.get(Pedido, detalle.pedido_id)
         if not pedido:
             raise HTTPException(status_code=404, detail="Pedido no encontrado para este detalle")
 
-        session.add(detalle)
-        session.commit()
-        session.refresh(detalle)
-        actualizar_total_pedido(detalle.pedido_id)
+        self.session.add(detalle)
+        self.session.commit()
+        self.session.refresh(detalle)
+
+        # Usamos método de instancia
+        self.pedido_service.actualizar_total_pedido(detalle.pedido_id)
+
         return detalle
 
+    def obtener_detalles(self) -> List[DetallePedido]:
+        return self.session.exec(select(DetallePedido)).all()
 
+    def obtener_detalle_por_id(self, detalle_id: int) -> Optional[DetallePedido]:
+        return self.session.get(DetallePedido, detalle_id)
 
-def obtener_detalles() -> List[DetallePedido]:
-    with get_session() as session:
-        return session.exec(select(DetallePedido)).all()
-
-
-def obtener_detalle_por_id(detalle_id: int) -> Optional[DetallePedido]:
-    with get_session() as session:
-        return session.get(DetallePedido, detalle_id)
-
-
-def actualizar_detalle(detalle_id: int, datos_actualizados: DetallePedido) -> Optional[DetallePedido]:
-    with get_session() as session:
-        detalle = session.get(DetallePedido, detalle_id)
+    def actualizar_detalle(self, detalle_id: int, datos: DetallePedido) -> Optional[DetallePedido]:
+        detalle = self.session.get(DetallePedido, detalle_id)
         if not detalle:
             return None
-        detalle.pedido_id = datos_actualizados.pedido_id
-        detalle.producto_id = datos_actualizados.producto_id
-        detalle.cantidad = datos_actualizados.cantidad
-        detalle.precio_unitario = datos_actualizados.precio_unitario
-        session.commit()
-        session.refresh(detalle)
+        detalle.pedido_id = datos.pedido_id
+        detalle.producto_id = datos.producto_id
+        detalle.cantidad = datos.cantidad
+        detalle.precio_unitario = datos.precio_unitario
+        self.session.commit()
+        self.session.refresh(detalle)
         return detalle
 
-
-def eliminar_detalle(detalle_id: int) -> bool:
-    with get_session() as session:
-        detalle = session.get(DetallePedido, detalle_id)
+    def eliminar_detalle(self, detalle_id: int) -> bool:
+        detalle = self.session.get(DetallePedido, detalle_id)
         if not detalle:
             return False
-        session.delete(detalle)
-        session.commit()
+        self.session.delete(detalle)
+        self.session.commit()
         return True
