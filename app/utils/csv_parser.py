@@ -5,28 +5,34 @@ from fastapi import HTTPException
 from app.domain.producto import Producto
 
 def parse_csv_to_productos(file_content: str) -> List[Producto]:
-    productos = []
-    csv_reader = csv.DictReader(StringIO(file_content))
+    from io import StringIO
+    import csv
 
-    if not csv_reader.fieldnames:
-        raise HTTPException(status_code=400, detail="El archivo CSV está vacío o mal formado")
+    def try_parse(separator: str):
+        reader = csv.DictReader(StringIO(file_content), delimiter=separator)
+        if not reader.fieldnames:
+            return None, None
+        clean_fields = [col.strip().replace("\ufeff", "") for col in reader.fieldnames]
+        field_map = {col.lower(): orig for col, orig in zip(clean_fields, reader.fieldnames)}
+        return reader, field_map
 
-    # Normalizamos los encabezados
-    field_map = {col.lower().strip(): col for col in csv_reader.fieldnames}
     expected_fields = {"nombre", "precio", "stock"}
-
-    if not expected_fields.issubset(field_map.keys()):
+    for sep in [",", ";"]:
+        csv_reader, field_map = try_parse(sep)
+        if csv_reader and expected_fields.issubset(field_map.keys()):
+            break
+    else:
         raise HTTPException(
             status_code=400,
-            detail=f"El CSV debe tener las columnas: {expected_fields}. Columnas encontradas: {field_map.keys()}"
+            detail=f"El CSV debe tener las columnas: {expected_fields}. Columnas encontradas: {field_map.keys() if field_map else 'desconocidas'}"
         )
 
+    productos = []
     for i, row in enumerate(csv_reader, start=2):
         try:
             nombre = row[field_map["nombre"]].strip()
             precio = float(row[field_map["precio"]].strip())
             stock = int(row[field_map["stock"]].strip())
-
             productos.append(Producto(nombre=nombre, precio=precio, stock=stock))
         except Exception as e:
             raise HTTPException(
