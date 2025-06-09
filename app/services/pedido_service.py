@@ -9,7 +9,6 @@ from app.domain.usuario import Usuario
 from app.persistence.db import get_session
 
 
-
 def crear_pedido(pedido_in: PedidoCreate) -> Pedido:
     with get_session() as session:
         usuario = session.get(Usuario, pedido_in.usuario_id)
@@ -28,9 +27,16 @@ def crear_pedido(pedido_in: PedidoCreate) -> Pedido:
 
 
 
-def obtener_pedidos() -> List[Pedido]:
+def obtener_pedidos(fecha_inicio: Optional[datetime] = None, fecha_fin: Optional[datetime] = None) -> List[Pedido]:
     with get_session() as session:
-        return session.exec(select(Pedido)).all()
+        query = select(Pedido)
+
+        if fecha_inicio:
+            query = query.where(Pedido.fecha >= fecha_inicio)
+        if fecha_fin:
+            query = query.where(Pedido.fecha <= fecha_fin)
+
+        return session.exec(query).all()
 
 
 def obtener_pedidos_con_detalles_por_usuario(usuario_id: int) -> List[PedidoConDetallesDTO]:

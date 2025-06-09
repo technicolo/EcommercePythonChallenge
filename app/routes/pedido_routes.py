@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException,APIRouter,UploadFile, File
-from typing import List
+from fastapi import APIRouter, HTTPException,APIRouter,UploadFile, File,Query
+from typing import List,Optional
 from app.domain.pedido import Pedido, PedidoCreate
 from app.services import pedido_service 
 from app.domain.detalle_pedido import PedidoConDetallesDTO
 from app.utils.csv_parser import parse_csv_to_productos
 from app.persistence.db import get_session
+from datetime import datetime
+
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
@@ -14,8 +16,11 @@ def crear(pedido: PedidoCreate):
 
 
 @router.get("/", response_model=List[Pedido])
-def listar():
-    return pedido_service.obtener_pedidos()
+def listar(
+    fecha_inicio: Optional[datetime] = Query(None),
+    fecha_fin: Optional[datetime] = Query(None),
+):
+    return pedido_service.obtener_pedidos(fecha_inicio, fecha_fin)
 
 
 @router.get("/{pedido_id}", response_model=PedidoConDetallesDTO)
