@@ -1,107 +1,125 @@
-from datetime import datetime
+# tests/test_detalle_pedido_service.py
+
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 
-from app.domain.detalle_pedido import DetallePedido
-from app.domain.pedido import Pedido
-from app.services import detalle_pedido_service
+from app.domain.entities.detalle_pedido_entity import DetallePedidoEntity
+from app.services.detalle_pedido_service import DetallePedidoService
 
 
-def test_crear_detalle_exitoso():
-    detalle_nuevo = DetallePedido(pedido_id=1, producto_id=2, cantidad=3, precio_unitario=50.0)
-    pedido_mock = Pedido(id=1, usuario_id=1, total=0, fecha=datetime.now())
-
-    with patch("app.services.detalle_pedido_service.get_session") as mock_get_session, \
-         patch("app.services.detalle_pedido_service.actualizar_total_pedido") as mock_actualizar:
-
-        mock_session = MagicMock()
-        mock_session.get.return_value = pedido_mock
-        mock_session.refresh.side_effect = lambda d: d
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = detalle_pedido_service.crear_detalle(detalle_nuevo)
-
-        assert resultado == detalle_nuevo
-        mock_actualizar.assert_called_once_with(1)
+@pytest.fixture
+def mock_session():
+    return MagicMock()
 
 
-def test_crear_detalle_pedido_inexistente():
-    detalle_nuevo = DetallePedido(pedido_id=99, producto_id=2, cantidad=3, precio_unitario=50.0)
-
-    with patch("app.services.detalle_pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = None  # No encuentra el pedido
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        with pytest.raises(HTTPException) as exc_info:
-            detalle_pedido_service.crear_detalle(detalle_nuevo)
-
-        assert exc_info.value.status_code == 404
-        assert exc_info.value.detail == "Pedido no encontrado para este detalle"
+@pytest.fixture
+def detalle_pedido_service(mock_session):
+    with patch("app.services.detalle_pedido_service.PedidoService"):
+        return DetallePedidoService(session=mock_session)
 
 
-def test_obtener_detalles():
-    detalles_mock = [
-        DetallePedido(id=1, pedido_id=1, producto_id=2, cantidad=1, precio_unitario=100.0),
-        DetallePedido(id=2, pedido_id=1, producto_id=3, cantidad=2, precio_unitario=150.0),
-    ]
 
-    with patch("app.services.detalle_pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        exec_result = MagicMock()
-        exec_result.all.return_value = detalles_mock
-        mock_session.exec.return_value = exec_result
-        mock_get_session.return_value.__enter__.return_value = mock_session
+def test_crear_detalle_con_pedido_existente(detalle_pedido_service, mock_session):
+    detalle_entity = DetallePedidoEntity(pedido_id=1, producto_id=2, cantidad=3, precio_unitario=10.0)
 
-        resultado = detalle_pedido_service.obtener_detalles()
-        assert resultado == detalles_mock
+    mock_session.get.return_value = MagicMock()  # pedido existe
+    mock_session.add.return_value = None
+    mock_session.commit.return_value = None
+    mock_session.refresh.return_value = None
 
+    with patch("app.services.detalle_pedido_service.to_model") as to_model_mock, \
+         patch("app.services.detalle_pedido_service.to_entity") as to_entity_mock:
+        mock_model = MagicMock()
+        to_model_mock.return_value = mock_model
+        detalle_data = detalle_entity.dict()
+        detalle_data["id"] = 1
+        to_entity_mock.return_value = DetallePedidoEntity(**detalle_data)
 
-def test_obtener_detalle_por_id():
-    detalle_mock = DetallePedido(id=1, pedido_id=1, producto_id=2, cantidad=2, precio_unitario=50.0)
+        result = detalle_pedido_service.crear_detalle(detalle_entity)
 
-    with patch("app.services.detalle_pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = detalle_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = detalle_pedido_service.obtener_detalle_por_id(1)
-        assert resultado == detalle_mock
+    assert isinstance(result, DetallePedidoEntity)
+    assert result.producto_id == 2
+    mock_session.add.assert_called_with(mock_model)
+    mock_session.commit.assert_called()
 
 
-def test_actualizar_detalle_exitoso():
-    detalle_existente = DetallePedido(id=1, pedido_id=1, producto_id=2, cantidad=2, precio_unitario=50.0)
-    datos_actualizados = DetallePedido(pedido_id=1, producto_id=2, cantidad=3, precio_unitario=60.0)
 
-    with patch("app.services.detalle_pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = detalle_existente
-        mock_get_session.return_value.__enter__.return_value = mock_session
+def test_obtener_detalles(detalle_pedido_service, mock_session):
+    mock_model = MagicMock()
+    mock_session.exec.return_value.all.return_value = [mock_model]
 
-        resultado = detalle_pedido_service.actualizar_detalle(1, datos_actualizados)
-        assert resultado.cantidad == 3
-        assert resultado.precio_unitario == 60.0
+    with patch("app.services.detalle_pedido_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = DetallePedidoEntity(id=1, pedido_id=1, producto_id=1, cantidad=1, precio_unitario=50.0)
 
+        result = detalle_pedido_service.obtener_detalles()
 
-def test_eliminar_detalle_exitoso():
-    detalle_mock = DetallePedido(id=1, pedido_id=1, producto_id=2, cantidad=2, precio_unitario=50.0)
-
-    with patch("app.services.detalle_pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = detalle_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = detalle_pedido_service.eliminar_detalle(1)
-        assert resultado is True
+    assert isinstance(result, list)
+    assert isinstance(result[0], DetallePedidoEntity)
+    mock_session.exec.assert_called()
 
 
-def test_eliminar_detalle_no_existente():
-    with patch("app.services.detalle_pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = None
-        mock_get_session.return_value.__enter__.return_value = mock_session
+def test_obtener_detalle_por_id_existente(detalle_pedido_service, mock_session):
+    mock_model = MagicMock()
+    mock_session.get.return_value = mock_model
 
-        resultado = detalle_pedido_service.eliminar_detalle(999)
-        assert resultado is False
+    with patch("app.services.detalle_pedido_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = DetallePedidoEntity(id=1, pedido_id=1, producto_id=1, cantidad=2, precio_unitario=30.0)
+
+        result = detalle_pedido_service.obtener_detalle_por_id(1)
+
+    assert isinstance(result, DetallePedidoEntity)
+    assert result.id == 1
+    mock_session.get.assert_called()
+
+
+def test_obtener_detalle_por_id_inexistente(detalle_pedido_service, mock_session):
+    mock_session.get.return_value = None
+    result = detalle_pedido_service.obtener_detalle_por_id(999)
+    assert result is None
+
+
+def test_actualizar_detalle_existente(detalle_pedido_service, mock_session):
+    mock_model = MagicMock()
+    mock_session.get.return_value = mock_model
+    mock_session.commit.return_value = None
+    mock_session.refresh.return_value = None
+
+    datos = DetallePedidoEntity(pedido_id=2, producto_id=5, cantidad=10, precio_unitario=15.0)
+
+    with patch("app.services.detalle_pedido_service.to_entity") as to_entity_mock:
+        detalle_data = datos.dict()
+        detalle_data["id"] = 1
+        to_entity_mock.return_value = DetallePedidoEntity(**detalle_data)
+
+        result = detalle_pedido_service.actualizar_detalle(1, datos)
+
+    assert isinstance(result, DetallePedidoEntity)
+    assert result.producto_id == 5
+    assert result.cantidad == 10
+    mock_session.commit.assert_called()
+
+
+
+def test_actualizar_detalle_inexistente(detalle_pedido_service, mock_session):
+    mock_session.get.return_value = None
+    datos = DetallePedidoEntity(pedido_id=1, producto_id=1, cantidad=1, precio_unitario=1.0)
+    result = detalle_pedido_service.actualizar_detalle(999, datos)
+    assert result is None
+
+
+def test_eliminar_detalle_existente(detalle_pedido_service, mock_session):
+    mock_detalle = MagicMock()
+    mock_session.get.return_value = mock_detalle
+
+    result = detalle_pedido_service.eliminar_detalle(1)
+
+    assert result is True
+    mock_session.delete.assert_called_with(mock_detalle)
+    mock_session.commit.assert_called()
+
+
+def test_eliminar_detalle_inexistente(detalle_pedido_service, mock_session):
+    mock_session.get.return_value = None
+    result = detalle_pedido_service.eliminar_detalle(999)
+    assert result is False

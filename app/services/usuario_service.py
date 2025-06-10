@@ -1,28 +1,34 @@
 # app/services/usuario_service.py
+
 from typing import List, Optional
 
 from sqlmodel import Session, select
 
-from app.domain.usuario import Usuario
+from app.domain.entities.usuario_entity import UsuarioEntity
+from app.mappers.usuario_mapper import to_entity, to_model
+from app.models.usuario import Usuario
 
 
 class UsuarioService:
     def __init__(self, session: Session):
         self.session = session
 
-    def crear_usuario(self, usuario: Usuario) -> Usuario:
-        self.session.add(usuario)
+    def crear_usuario(self, usuario: UsuarioEntity) -> UsuarioEntity:
+        model = to_model(usuario)
+        self.session.add(model)
         self.session.commit()
-        self.session.refresh(usuario)
-        return usuario
+        self.session.refresh(model)
+        return to_entity(model)
 
-    def obtener_usuarios(self) -> List[Usuario]:
-        return self.session.exec(select(Usuario)).all()
+    def obtener_usuarios(self) -> List[UsuarioEntity]:
+        results = self.session.exec(select(Usuario)).all()
+        return [to_entity(u) for u in results]
 
-    def obtener_usuario_por_id(self, usuario_id: int) -> Optional[Usuario]:
-        return self.session.get(Usuario, usuario_id)
+    def obtener_usuario_por_id(self, usuario_id: int) -> Optional[UsuarioEntity]:
+        usuario = self.session.get(Usuario, usuario_id)
+        return to_entity(usuario) if usuario else None
 
-    def actualizar_usuario(self, usuario_id: int, datos_actualizados: Usuario) -> Optional[Usuario]:
+    def actualizar_usuario(self, usuario_id: int, datos_actualizados: UsuarioEntity) -> Optional[UsuarioEntity]:
         usuario = self.session.get(Usuario, usuario_id)
         if not usuario:
             return None
@@ -30,7 +36,7 @@ class UsuarioService:
         usuario.email = datos_actualizados.email
         self.session.commit()
         self.session.refresh(usuario)
-        return usuario
+        return to_entity(usuario)
 
     def eliminar_usuario(self, usuario_id: int) -> bool:
         usuario = self.session.get(Usuario, usuario_id)

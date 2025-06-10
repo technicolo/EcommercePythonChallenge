@@ -1,22 +1,25 @@
+# app/routes/pedidos_routes.py
+
 from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.domain.detalle_pedido import PedidoConDetallesDTO
-from app.domain.pedido import Pedido, PedidoCreate
+from app.domain.entities.pedido_entity import PedidoEntity
+from app.models.detalle_pedido import PedidoConDetallesDTO
+from app.models.pedido import PedidoCreate
 from app.services.dependencies import get_pedido_service
 from app.services.pedido_service import PedidoService
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
 
-@router.post("/", response_model=Pedido)
+@router.post("/", response_model=PedidoEntity)
 def crear(pedido: PedidoCreate, service: PedidoService = Depends(get_pedido_service)):
     return service.crear_pedido(pedido)
 
 
-@router.get("/", response_model=List[Pedido])
+@router.get("/", response_model=List[PedidoEntity])
 def listar(
     fecha_inicio: Optional[datetime] = Query(None),
     fecha_fin: Optional[datetime] = Query(None),
@@ -30,7 +33,7 @@ def obtener_pedido(pedido_id: int, service: PedidoService = Depends(get_pedido_s
     return service.obtener_pedido_con_detalles(pedido_id)
 
 
-@router.put("/{pedido_id}", response_model=Pedido)
+@router.put("/{pedido_id}", response_model=PedidoEntity)
 def actualizar(pedido_id: int, datos: PedidoCreate, service: PedidoService = Depends(get_pedido_service)):
     pedido = service.actualizar_pedido(pedido_id, datos)
     if not pedido:

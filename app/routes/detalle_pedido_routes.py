@@ -1,28 +1,30 @@
+# app/routes/detalle_pedido_routes.py
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.domain.detalle_pedido import DetallePedido
+from app.domain.entities.detalle_pedido_entity import DetallePedidoEntity
 from app.services.dependencies import get_detalle_pedido_service
 from app.services.detalle_pedido_service import DetallePedidoService
 
 router = APIRouter(prefix="/detalles", tags=["DetallePedido"])
 
 
-@router.post("/", response_model=DetallePedido)
+@router.post("/", response_model=DetallePedidoEntity)
 def crear(
-    detalle: DetallePedido,
+    detalle: DetallePedidoEntity,
     service: DetallePedidoService = Depends(get_detalle_pedido_service)
 ):
     return service.crear_detalle(detalle)
 
 
-@router.get("/", response_model=List[DetallePedido])
+@router.get("/", response_model=List[DetallePedidoEntity])
 def listar(service: DetallePedidoService = Depends(get_detalle_pedido_service)):
     return service.obtener_detalles()
 
 
-@router.get("/{detalle_id}", response_model=DetallePedido)
+@router.get("/{detalle_id}", response_model=DetallePedidoEntity)
 def obtener(detalle_id: int, service: DetallePedidoService = Depends(get_detalle_pedido_service)):
     detalle = service.obtener_detalle_por_id(detalle_id)
     if not detalle:
@@ -30,10 +32,10 @@ def obtener(detalle_id: int, service: DetallePedidoService = Depends(get_detalle
     return detalle
 
 
-@router.put("/{detalle_id}", response_model=DetallePedido)
+@router.put("/{detalle_id}", response_model=DetallePedidoEntity)
 def actualizar(
     detalle_id: int,
-    datos: DetallePedido,
+    datos: DetallePedidoEntity,
     service: DetallePedidoService = Depends(get_detalle_pedido_service)
 ):
     detalle = service.actualizar_detalle(detalle_id, datos)

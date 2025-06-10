@@ -2,121 +2,107 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 
-from app.domain.detalle_pedido import DetallePedido
-from app.domain.pedido import Pedido, PedidoCreate
-from app.domain.usuario import Usuario
-from app.persistence.db import get_session
-from app.services import pedido_service
-
-
-def test_crear_pedido_exitoso():
-    pedido_in = PedidoCreate(usuario_id=1)
-    usuario_mock = Usuario(id=1, nombre="Juan")
-    pedido_mock = Pedido(id=1, usuario_id=1, fecha=datetime.utcnow(), total=0)
-
-    with patch("app.services.pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = usuario_mock
-        mock_session.add.return_value = None
-        mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda x: x
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = pedido_service.crear_pedido(pedido_in)
-
-        assert resultado.usuario_id == pedido_mock.usuario_id
-        assert resultado.total == 0
+from app.domain.entities.pedido_entity import PedidoEntity
+from app.models.detalle_pedido import DetallePedido
+from app.models.pedido import PedidoCreate
+from app.models.usuario import Usuario
+from app.services.pedido_service import PedidoService
 
 
-def test_obtener_pedidos_con_y_sin_filtro():
-    pedidos_mock = [
-        Pedido(id=1, usuario_id=1, fecha=datetime(2025, 6, 1), total=100),
-        Pedido(id=2, usuario_id=2, fecha=datetime(2025, 6, 2), total=200),
-    ]
-
-    with patch("app.services.pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.exec.return_value.all.return_value = pedidos_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = pedido_service.obtener_pedidos()
-        assert len(resultado) == 2
+@pytest.fixture
+def mock_session():
+    return MagicMock()
 
 
-def test_actualizar_total_pedido_suma_correctamente():
-    detalles_mock = [
-        DetallePedido(pedido_id=1, producto_id=1, cantidad=2, precio_unitario=100),
-        DetallePedido(pedido_id=1, producto_id=2, cantidad=1, precio_unitario=300),
-    ]
-    pedido_mock = Pedido(id=1, usuario_id=1, total=0, fecha=datetime.utcnow())
-
-    with patch("app.services.pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-
-        # Simula el .all() correctamente
-        mock_exec_result = MagicMock()
-        mock_exec_result.all.return_value = detalles_mock
-        mock_session.exec.return_value = mock_exec_result
-
-        mock_session.get.return_value = pedido_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        pedido_service.actualizar_total_pedido(1)
-        assert pedido_mock.total == 500
+@pytest.fixture
+def pedido_service(mock_session):
+    return PedidoService(session=mock_session)
 
 
+def test_crear_pedido_usuario_existente(pedido_service, mock_session):
+    mock_usuario = Usuario(id=1)
+    mock_session.get.return_value = mock_usuario
+    mock_pedido = MagicMock(id=1, usuario_id=1, fecha=datetime.utcnow(), total=0)
+    mock_session.add.return_value = None
+    mock_session.commit.return_value = None
+    mock_session.refresh.return_value = None
+
+    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_pedido.fecha, total=0)):
+        result = pedido_service.crear_pedido(PedidoCreate(usuario_id=1))
+
+    assert isinstance(result, PedidoEntity)
+    assert result.usuario_id == 1
+    mock_session.add.assert_called()
 
 
-def actualizar_pedido(pedido_id: int, datos: PedidoCreate):
-    with get_session() as session:  # type: ignore
-        pedido = session.get(Pedido, pedido_id)
-        if not pedido:
-            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+def test_obtener_pedidos(pedido_service, mock_session):
+    mock_model = MagicMock()
+    mock_model.usuario_id = 1
+    mock_model.total = 100.0
+    mock_model.fecha = datetime.utcnow()
+    mock_model.id = 1
 
-        pedido.usuario_id = datos.usuario_id
-        # No intentes acceder a datos.total si no está definido en PedidoCreate
+    mock_session.exec.return_value.all.return_value = [mock_model]
 
-        session.add(pedido)
-        session.commit()
-        session.refresh(pedido)
-        return pedido
+    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_model.fecha, total=100.0)):
+        result = pedido_service.obtener_pedidos()
 
-
-def test_actualizar_pedido_no_existente():
-    with patch("app.services.pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = None
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        with pytest.raises(HTTPException) as exc_info:
-            pedido_service.actualizar_pedido(99, PedidoCreate(usuario_id=1))
-
-        assert exc_info.value.status_code == 404
-        assert exc_info.value.detail == "Pedido no encontrado"
+    assert isinstance(result, list)
+    assert isinstance(result[0], PedidoEntity)
+    assert result[0].usuario_id == 1
 
 
-def test_eliminar_pedido_existente():
-    pedido_mock = Pedido(id=1, usuario_id=1, fecha=datetime.utcnow(), total=100)
+def test_actualizar_pedido_existente(pedido_service, mock_session):
+    mock_pedido = MagicMock()
+    mock_pedido.usuario_id = 1
+    mock_pedido.id = 1
+    mock_session.get.return_value = mock_pedido
 
-    with patch("app.services.pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = pedido_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
+    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=2, fecha=datetime.utcnow(), total=0)):
+        result = pedido_service.actualizar_pedido(1, PedidoCreate(usuario_id=2))
 
-        resultado = pedido_service.eliminar_pedido(1)
-        assert resultado is True
+    assert isinstance(result, PedidoEntity)
+    assert result.usuario_id == 2
+    mock_session.commit.assert_called()
 
 
-def test_eliminar_pedido_no_existente():
-    with patch("app.services.pedido_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = None
-        mock_get_session.return_value.__enter__.return_value = mock_session
+def test_eliminar_pedido_existente(pedido_service, mock_session):
+    mock_pedido = MagicMock()
+    mock_session.get.return_value = mock_pedido
 
-        with pytest.raises(HTTPException) as exc_info:
-            pedido_service.eliminar_pedido(999)
+    result = pedido_service.eliminar_pedido(1)
 
-        assert exc_info.value.status_code == 404
-        assert exc_info.value.detail == "Pedido no encontrado"
+    assert result is True
+    mock_session.delete.assert_called_with(mock_pedido)
+    mock_session.commit.assert_called()
+
+
+def test_obtener_pedidos_por_usuario(pedido_service, mock_session):
+    mock_model = MagicMock()
+    mock_model.usuario_id = 1
+    mock_model.total = 100.0
+    mock_model.fecha = datetime.utcnow()
+    mock_model.id = 1
+
+    mock_session.exec.return_value.all.return_value = [mock_model]
+
+    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_model.fecha, total=100.0)):
+        result = pedido_service.obtener_pedidos_por_usuario(1)
+
+    assert isinstance(result, list)
+    assert isinstance(result[0], PedidoEntity)
+    assert result[0].usuario_id == 1
+
+
+def test_actualizar_total_pedido(pedido_service, mock_session):
+    mock_detalle = DetallePedido(producto_id=1, cantidad=2, precio_unitario=50.0, pedido_id=1)
+    mock_session.exec.return_value.all.return_value = [mock_detalle]
+
+    mock_pedido = MagicMock()
+    mock_session.get.return_value = mock_pedido
+
+    pedido_service.actualizar_total_pedido(1)
+
+    assert mock_pedido.total == 100.0
+    mock_session.commit.assert_called()

@@ -1,79 +1,115 @@
+# tests/test_producto_service.py
+
 from unittest.mock import MagicMock, patch
 
-from app.domain.producto import Producto
-from app.services import producto_service
+import pytest
+
+from app.domain.entities.producto_entity import ProductoEntity
+from app.services.producto_service import ProductoService
 
 
-def test_crear_producto_exitoso():
-    producto_nuevo = Producto(nombre="Café", precio=10.0, stock=50)
+@pytest.fixture
+def mock_session():
+    return MagicMock()
 
-    with patch("app.services.producto_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.add.return_value = None
-        mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda p: p
-        mock_get_session.return_value.__enter__.return_value = mock_session
 
-        resultado = producto_service.crear_producto(producto_nuevo)
-        assert resultado == producto_nuevo
+@pytest.fixture
+def producto_service(mock_session):
+    return ProductoService(session=mock_session)
 
-def test_obtener_productos():
-    productos_mock = [
-        Producto(id=1, nombre="Café", precio=10.0, stock=50),
-        Producto(id=2, nombre="Té", precio=8.0, stock=30),
-    ]
 
-    with patch("app.services.producto_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        exec_result = MagicMock()
-        exec_result.all.return_value = productos_mock
-        mock_session.exec.return_value = exec_result
-        mock_get_session.return_value.__enter__.return_value = mock_session
+def test_crear_producto(producto_service, mock_session):
+    producto_entity = ProductoEntity(nombre="Fernet", precio=1500.0, stock=10)
+    mock_session.add.return_value = None
+    mock_session.commit.return_value = None
+    mock_session.refresh.return_value = None
 
-        resultado = producto_service.obtener_productos()
-        assert resultado == productos_mock
+    with patch("app.services.producto_service.to_model") as to_model_mock, \
+         patch("app.services.producto_service.to_entity") as to_entity_mock:
+        mock_model = MagicMock()
+        to_model_mock.return_value = mock_model
+        to_entity_mock.return_value = ProductoEntity(id=1, nombre="Fernet", precio=1500.0, stock=10)
 
-def test_obtener_producto_por_id():
-    producto_mock = Producto(id=1, nombre="Café", precio=10.0, stock=50)
+        result = producto_service.crear_producto(producto_entity)
 
-    with patch("app.services.producto_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = producto_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
+    assert isinstance(result, ProductoEntity)
+    assert result.nombre == "Fernet"
+    mock_session.add.assert_called_with(mock_model)
+    mock_session.commit.assert_called()
 
-        resultado = producto_service.obtener_producto_por_id(1)
-        assert resultado == producto_mock
 
-def test_actualizar_producto_exitoso():
-    producto_existente = Producto(id=1, nombre="Café", precio=10.0, stock=50)
-    datos_actualizados = Producto(nombre="Café Premium", precio=12.5, stock=60)
+def test_obtener_productos(producto_service, mock_session):
+    mock_producto = MagicMock()
+    mock_session.exec.return_value.all.return_value = [mock_producto]
 
-    with patch("app.services.producto_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = producto_existente
-        mock_get_session.return_value.__enter__.return_value = mock_session
+    with patch("app.services.producto_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = ProductoEntity(id=1, nombre="Gancia", precio=1200.0, stock=5)
 
-        resultado = producto_service.actualizar_producto(1, datos_actualizados)
-        assert resultado.nombre == "Café Premium"
-        assert resultado.precio == 12.5
-        assert resultado.stock == 60
+        result = producto_service.obtener_productos()
 
-def test_eliminar_producto_exitoso():
-    producto_mock = Producto(id=1, nombre="Café", precio=10.0, stock=50)
+    assert isinstance(result, list)
+    assert result[0].nombre == "Gancia"
+    mock_session.exec.assert_called()
 
-    with patch("app.services.producto_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = producto_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
 
-        resultado = producto_service.eliminar_producto(1)
-        assert resultado is True
+def test_obtener_producto_por_id_existente(producto_service, mock_session):
+    mock_producto = MagicMock()
+    mock_session.get.return_value = mock_producto
 
-def test_eliminar_producto_no_existente():
-    with patch("app.services.producto_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = None
-        mock_get_session.return_value.__enter__.return_value = mock_session
+    with patch("app.services.producto_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = ProductoEntity(id=1, nombre="Sprite", precio=500.0, stock=20)
 
-        resultado = producto_service.eliminar_producto(999)
-        assert resultado is False
+        result = producto_service.obtener_producto_por_id(1)
+
+    assert isinstance(result, ProductoEntity)
+    assert result.nombre == "Sprite"
+    mock_session.get.assert_called()
+
+
+def test_obtener_producto_por_id_inexistente(producto_service, mock_session):
+    mock_session.get.return_value = None
+    result = producto_service.obtener_producto_por_id(999)
+    assert result is None
+
+
+def test_actualizar_producto_existente(producto_service, mock_session):
+    mock_producto = MagicMock()
+    mock_session.get.return_value = mock_producto
+    mock_session.commit.return_value = None
+    mock_session.refresh.return_value = None
+
+    datos = ProductoEntity(nombre="Pepsi", precio=600.0, stock=30)
+
+    with patch("app.services.producto_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = ProductoEntity(id=1, nombre="Pepsi", precio=600.0, stock=30)
+
+        result = producto_service.actualizar_producto(1, datos)
+
+    assert isinstance(result, ProductoEntity)
+    assert result.nombre == "Pepsi"
+    assert result.precio == 600.0
+    mock_session.commit.assert_called()
+
+
+def test_actualizar_producto_inexistente(producto_service, mock_session):
+    mock_session.get.return_value = None
+    datos = ProductoEntity(nombre="Agua", precio=300.0, stock=100)
+    result = producto_service.actualizar_producto(999, datos)
+    assert result is None
+
+
+def test_eliminar_producto_existente(producto_service, mock_session):
+    mock_producto = MagicMock()
+    mock_session.get.return_value = mock_producto
+
+    result = producto_service.eliminar_producto(1)
+
+    assert result is True
+    mock_session.delete.assert_called_with(mock_producto)
+    mock_session.commit.assert_called()
+
+
+def test_eliminar_producto_inexistente(producto_service, mock_session):
+    mock_session.get.return_value = None
+    result = producto_service.eliminar_producto(999)
+    assert result is False

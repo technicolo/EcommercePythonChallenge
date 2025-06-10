@@ -1,83 +1,114 @@
+# tests/test_usuario_service.py
+
 from unittest.mock import MagicMock, patch
 
-from app.domain.usuario import Usuario
-from app.services import usuario_service
+import pytest
+
+from app.domain.entities.usuario_entity import UsuarioEntity
+from app.services.usuario_service import UsuarioService
 
 
-def test_crear_usuario_exitoso():
-    usuario_nuevo = Usuario(nombre="Juan", email="juan@example.com")
-
-    with patch("app.services.usuario_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.add.return_value = None
-        mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda u: u  # simula el refresh
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = usuario_service.crear_usuario(usuario_nuevo)
-        assert resultado == usuario_nuevo
+@pytest.fixture
+def mock_session():
+    return MagicMock()
 
 
-def test_obtener_usuarios():
-    usuarios_mock = [
-        Usuario(id=1, nombre="Juan", email="juan@example.com"),
-        Usuario(id=2, nombre="Ana", email="ana@example.com"),
-    ]
-
-    with patch("app.services.usuario_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        exec_result = MagicMock()
-        exec_result.all.return_value = usuarios_mock
-        mock_session.exec.return_value = exec_result
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = usuario_service.obtener_usuarios()
-        assert resultado == usuarios_mock
+@pytest.fixture
+def usuario_service(mock_session):
+    return UsuarioService(session=mock_session)
 
 
-def test_obtener_usuario_por_id():
-    usuario_mock = Usuario(id=1, nombre="Juan", email="juan@example.com")
+def test_crear_usuario(usuario_service, mock_session):
+    usuario_entity = UsuarioEntity(nombre="Juan", email="juan@mail.com")
+    mock_session.add.return_value = None
+    mock_session.commit.return_value = None
+    mock_session.refresh.return_value = None
 
-    with patch("app.services.usuario_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = usuario_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
+    with patch("app.services.usuario_service.to_model") as to_model_mock, \
+         patch("app.services.usuario_service.to_entity") as to_entity_mock:
+        mock_model = MagicMock()
+        to_model_mock.return_value = mock_model
+        to_entity_mock.return_value = UsuarioEntity(id=1, nombre="Juan", email="juan@mail.com")
 
-        resultado = usuario_service.obtener_usuario_por_id(1)
-        assert resultado == usuario_mock
+        result = usuario_service.crear_usuario(usuario_entity)
 
-
-def test_actualizar_usuario_exitoso():
-    usuario_existente = Usuario(id=1, nombre="Juan", email="viejo@example.com")
-    datos_actualizados = Usuario(nombre="Juan Nuevo", email="nuevo@example.com")
-
-    with patch("app.services.usuario_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = usuario_existente
-        mock_get_session.return_value.__enter__.return_value = mock_session
-
-        resultado = usuario_service.actualizar_usuario(1, datos_actualizados)
-        assert resultado.nombre == "Juan Nuevo"
-        assert resultado.email == "nuevo@example.com"
+    assert isinstance(result, UsuarioEntity)
+    assert result.nombre == "Juan"
+    mock_session.add.assert_called_with(mock_model)
+    mock_session.commit.assert_called()
 
 
-def test_eliminar_usuario_exitoso():
-    usuario_mock = Usuario(id=1, nombre="Juan", email="juan@example.com")
+def test_obtener_usuarios(usuario_service, mock_session):
+    mock_usuario = MagicMock()
+    mock_session.exec.return_value.all.return_value = [mock_usuario]
 
-    with patch("app.services.usuario_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = usuario_mock
-        mock_get_session.return_value.__enter__.return_value = mock_session
+    with patch("app.services.usuario_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = UsuarioEntity(id=1, nombre="Ana", email="ana@mail.com")
 
-        resultado = usuario_service.eliminar_usuario(1)
-        assert resultado is True
+        result = usuario_service.obtener_usuarios()
+
+    assert isinstance(result, list)
+    assert result[0].nombre == "Ana"
+    mock_session.exec.assert_called()
 
 
-def test_eliminar_usuario_no_existente():
-    with patch("app.services.usuario_service.get_session") as mock_get_session:
-        mock_session = MagicMock()
-        mock_session.get.return_value = None
-        mock_get_session.return_value.__enter__.return_value = mock_session
+def test_obtener_usuario_por_id_existente(usuario_service, mock_session):
+    mock_usuario = MagicMock()
+    mock_session.get.return_value = mock_usuario
 
-        resultado = usuario_service.eliminar_usuario(999)
-        assert resultado is False
+    with patch("app.services.usuario_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = UsuarioEntity(id=1, nombre="Luis", email="luis@mail.com")
+
+        result = usuario_service.obtener_usuario_por_id(1)
+
+    assert isinstance(result, UsuarioEntity)
+    assert result.nombre == "Luis"
+    mock_session.get.assert_called()
+
+
+def test_obtener_usuario_por_id_inexistente(usuario_service, mock_session):
+    mock_session.get.return_value = None
+    result = usuario_service.obtener_usuario_por_id(999)
+    assert result is None
+
+
+def test_actualizar_usuario_existente(usuario_service, mock_session):
+    mock_usuario = MagicMock()
+    mock_session.get.return_value = mock_usuario
+    mock_session.commit.return_value = None
+    mock_session.refresh.return_value = None
+
+    datos = UsuarioEntity(nombre="Nuevo Nombre", email="nuevo@mail.com")
+
+    with patch("app.services.usuario_service.to_entity") as to_entity_mock:
+        to_entity_mock.return_value = UsuarioEntity(id=1, nombre="Nuevo Nombre", email="nuevo@mail.com")
+
+        result = usuario_service.actualizar_usuario(1, datos)
+
+    assert isinstance(result, UsuarioEntity)
+    assert result.nombre == "Nuevo Nombre"
+    mock_session.commit.assert_called()
+
+
+def test_actualizar_usuario_inexistente(usuario_service, mock_session):
+    mock_session.get.return_value = None
+    datos = UsuarioEntity(nombre="X", email="x@mail.com")
+    result = usuario_service.actualizar_usuario(999, datos)
+    assert result is None
+
+
+def test_eliminar_usuario_existente(usuario_service, mock_session):
+    mock_usuario = MagicMock()
+    mock_session.get.return_value = mock_usuario
+
+    result = usuario_service.eliminar_usuario(1)
+
+    assert result is True
+    mock_session.delete.assert_called_with(mock_usuario)
+    mock_session.commit.assert_called()
+
+
+def test_eliminar_usuario_inexistente(usuario_service, mock_session):
+    mock_session.get.return_value = None
+    result = usuario_service.eliminar_usuario(999)
+    assert result is False
