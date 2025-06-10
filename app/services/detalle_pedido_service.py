@@ -1,10 +1,13 @@
 # app/services/detalle_pedido_service.py
-from sqlmodel import Session, select
 from typing import List, Optional
+
 from fastapi import HTTPException
+from sqlmodel import Session, select
+
 from app.domain.detalle_pedido import DetallePedido
 from app.domain.pedido import Pedido
 from app.services.pedido_service import PedidoService
+
 
 class DetallePedidoService:
     def __init__(self, session: Session):

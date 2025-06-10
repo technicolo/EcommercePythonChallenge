@@ -1,7 +1,9 @@
 # app/services/producto_service.py
-from sqlmodel import Session, select
-from app.domain.producto import Producto
 from typing import List, Optional
+
+from sqlmodel import Session, select
+
+from app.domain.producto import Producto
 
 
 class ProductoService:

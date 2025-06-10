@@ -1,11 +1,11 @@
 from unittest.mock import MagicMock, patch
+
 from app.domain.usuario import Usuario
 from app.services import usuario_service
 
 
 def test_crear_usuario_exitoso():
     usuario_nuevo = Usuario(nombre="Juan", email="juan@example.com")
-    usuario_creado = Usuario(id=1, nombre="Juan", email="juan@example.com")
 
     with patch("app.services.usuario_service.get_session") as mock_get_session:
         mock_session = MagicMock()

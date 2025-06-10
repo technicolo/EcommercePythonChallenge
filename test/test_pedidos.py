@@ -1,13 +1,14 @@
-from fastapi import HTTPException
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi import HTTPException
+
+from app.domain.detalle_pedido import DetallePedido
+from app.domain.pedido import Pedido, PedidoCreate
+from app.domain.usuario import Usuario
 from app.persistence.db import get_session
 from app.services import pedido_service
-from app.domain.pedido import PedidoCreate, Pedido
-from app.domain.usuario import Usuario
-from app.domain.detalle_pedido import DetallePedido
-
 
 
 def test_crear_pedido_exitoso():
@@ -69,7 +70,7 @@ def test_actualizar_total_pedido_suma_correctamente():
 
 
 def actualizar_pedido(pedido_id: int, datos: PedidoCreate):
-    with get_session() as session:
+    with get_session() as session:  # type: ignore
         pedido = session.get(Pedido, pedido_id)
         if not pedido:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")

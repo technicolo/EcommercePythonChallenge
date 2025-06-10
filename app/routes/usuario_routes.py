@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends
 from typing import List
-from app.domain.usuario import Usuario
+
+from fastapi import APIRouter, Depends, HTTPException
+
 from app.domain.detalle_pedido import PedidoConDetallesDTO
-from app.services.usuario_service import UsuarioService
+from app.domain.usuario import Usuario
+from app.services.dependencies import get_pedido_service, get_usuario_service
 from app.services.pedido_service import PedidoService
-from app.services.dependencies import get_usuario_service, get_pedido_service
+from app.services.usuario_service import UsuarioService
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -47,4 +49,4 @@ def listar_pedidos_usuario(
     usuario_id: int,
     service: PedidoService = Depends(get_pedido_service)
 ):
-    return service.obtener_pedidos_con_detalles_por_usuario(usuario_id)
+    return service.obtener_pedidos_con_detalles_por_usuario(usuario_id) # type: ignore

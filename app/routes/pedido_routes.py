@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Depends
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
-from app.domain.pedido import Pedido, PedidoCreate
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from app.domain.detalle_pedido import PedidoConDetallesDTO
+from app.domain.pedido import Pedido, PedidoCreate
 from app.services.dependencies import get_pedido_service
 from app.services.pedido_service import PedidoService
 

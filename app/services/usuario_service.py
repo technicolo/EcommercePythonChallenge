@@ -1,7 +1,10 @@
 # app/services/usuario_service.py
-from sqlmodel import Session, select
 from typing import List, Optional
+
+from sqlmodel import Session, select
+
 from app.domain.usuario import Usuario
+
 
 class UsuarioService:
     def __init__(self, session: Session):

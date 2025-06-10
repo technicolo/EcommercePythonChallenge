@@ -1,16 +1,9 @@
-from app.domain.usuario import Usuario
-from app.domain.producto import Producto
-from app.domain.pedido import Pedido
-from app.domain.detalle_pedido import DetallePedido
-from sqlmodel import SQLModel
-
-
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
+from sqlmodel import SQLModel
 
-from alembic import context
+from alembic import context  # type: ignore
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

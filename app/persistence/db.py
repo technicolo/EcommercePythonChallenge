@@ -1,6 +1,6 @@
-from sqlmodel import SQLModel, create_engine, Session
 from typing import Generator
-from contextlib import contextmanager
+
+from sqlmodel import Session, SQLModel, create_engine
 
 DATABASE_URL = "sqlite:///./ecommerce.db"
 engine = create_engine("sqlite:///ecommerce.db", echo=True)

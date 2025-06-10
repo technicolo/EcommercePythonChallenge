@@ -1,13 +1,13 @@
 from typing import List
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlmodel import Session, select
+
 from app.domain.producto import Producto
 from app.persistence.db import get_session
 from app.services.dependencies import get_producto_service
-from app.utils.csv_parser import parse_csv_to_productos
 from app.services.producto_service import ProductoService
-
-
+from app.utils.csv_parser import parse_csv_to_productos
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 

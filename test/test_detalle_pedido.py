@@ -1,10 +1,12 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi import HTTPException
+
 from app.domain.detalle_pedido import DetallePedido
 from app.domain.pedido import Pedido
 from app.services import detalle_pedido_service
-import pytest
-from fastapi import HTTPException
 
 
 def test_crear_detalle_exitoso():

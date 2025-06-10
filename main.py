@@ -1,9 +1,15 @@
-from app.persistence.db import create_db_and_tables
-from app.routes import detalle_pedido_routes, pedido_routes, producto_routes, usuario_routes
 from fastapi import FastAPI, Request
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
-from app.utils.ProblemDetailsException  import problem_detail_response
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.persistence.db import create_db_and_tables
+from app.routes import (
+    detalle_pedido_routes,
+    pedido_routes,
+    producto_routes,
+    usuario_routes,
+)
+from app.utils.ProblemDetailsException import problem_detail_response
 
 app = FastAPI(
     title="E-commerce API",

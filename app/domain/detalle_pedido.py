@@ -1,10 +1,11 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
-from typing import List
 from datetime import datetime
-from pydantic import BaseModel
+from typing import List, Optional
 
-class DetallePedido(SQLModel, table=True):
+from pydantic import BaseModel
+from sqlmodel import Field, SQLModel
+
+
+class DetallePedido(SQLModel, table=True):  # type: ignore
     id: Optional[int] = Field(default=None, primary_key=True)
     pedido_id: int
     producto_id: int

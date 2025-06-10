@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
 from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
+
 from app.domain.detalle_pedido import DetallePedido
-from app.services.detalle_pedido_service import DetallePedidoService
 from app.services.dependencies import get_detalle_pedido_service
+from app.services.detalle_pedido_service import DetallePedidoService
 
 router = APIRouter(prefix="/detalles", tags=["DetallePedido"])
 

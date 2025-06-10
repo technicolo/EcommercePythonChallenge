@@ -1,11 +1,12 @@
-import csv
 from io import StringIO
 from typing import List
+
 from fastapi import HTTPException
+
 from app.domain.producto import Producto
 
+
 def parse_csv_to_productos(file_content: str) -> List[Producto]:
-    from io import StringIO
     import csv
 
     def try_parse(separator: str):
