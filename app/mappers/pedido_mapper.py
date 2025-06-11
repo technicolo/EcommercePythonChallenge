@@ -1,5 +1,3 @@
-# app/mappers/pedido_mapper.py
-
 from app.domain.entities.pedido_entity import PedidoEntity
 from app.models.pedido import Pedido
 
@@ -10,6 +8,7 @@ def to_entity(model: Pedido) -> PedidoEntity:
         usuario_id=model.usuario_id,
         total=model.total,
         fecha=model.fecha,
+        estado=model.estado 
     )
 
 def to_model(entity: PedidoEntity) -> Pedido:
@@ -18,4 +17,5 @@ def to_model(entity: PedidoEntity) -> Pedido:
         usuario_id=entity.usuario_id,
         total=entity.total,
         fecha=entity.fecha,
+        estado=entity.estado 
     )

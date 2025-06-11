@@ -20,10 +20,11 @@ class ProductoService:
         self.session.refresh(model)
         return to_entity(model)
 
-    def obtener_productos(self) -> List[ProductoEntity]:
-        productos = self.session.exec(select(Producto)).all()
+    def obtener_productos(self, offset: int = 0, limit: int = 10) -> List[ProductoEntity]:
+        stmt = select(Producto).offset(offset).limit(limit)
+        productos = self.session.exec(stmt).all()
         return [to_entity(p) for p in productos]
-
+ 
     def obtener_producto_por_id(self, producto_id: int) -> Optional[ProductoEntity]:
         producto = self.session.get(Producto, producto_id)
         return to_entity(producto) if producto else None
@@ -46,3 +47,5 @@ class ProductoService:
         self.session.delete(producto)
         self.session.commit()
         return True
+
+

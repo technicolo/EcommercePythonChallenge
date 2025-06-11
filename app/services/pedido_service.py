@@ -1,6 +1,7 @@
 # app/services/pedido_service.py
 
 from datetime import datetime
+from functools import cache
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -110,3 +111,28 @@ class PedidoService:
             )
         pedido.total = total
         self.session.commit()
+
+    @staticmethod
+    @cache
+    def calcular_total_cached(datos: tuple[tuple[int, float], ...]) -> float:
+        return sum(cantidad * precio_unitario for cantidad, precio_unitario in datos)
+
+    def pagar_pedido(self, pedido_id: int) -> Pedido:
+        pedido = self.session.get(Pedido, pedido_id)
+        if not pedido:
+            raise ValueError("Pedido no encontrado")
+
+        if pedido.estado == "pagado":
+            raise ValueError("El pedido ya está pagado")
+
+        detalles = self.session.exec(
+            select(DetallePedido).where(DetallePedido.pedido_id == pedido_id)
+        ).all()
+
+        total = self.calcular_total_cached(tuple(detalles))
+        pedido.total = total
+        pedido.estado = "pagado"
+        self.session.add(pedido)
+        self.session.commit()
+        self.session.refresh(pedido)
+        return pedido

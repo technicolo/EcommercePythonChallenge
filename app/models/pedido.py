@@ -8,6 +8,7 @@ class Pedido(SQLModel, table=True):  # type: ignore
     id: Optional[int] = Field(default=None, primary_key=True)
     fecha: datetime = Field(default_factory=datetime.utcnow)
     total: float
+    estado: str = Field(default="pendiente")
     usuario_id: int
 
 

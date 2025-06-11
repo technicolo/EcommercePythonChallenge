@@ -4,10 +4,12 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import Session
 
 from app.domain.entities.pedido_entity import PedidoEntity
 from app.models.detalle_pedido import PedidoConDetallesDTO
 from app.models.pedido import PedidoCreate
+from app.persistence.db import get_session
 from app.services.dependencies import get_pedido_service
 from app.services.pedido_service import PedidoService
 
@@ -46,3 +48,12 @@ def eliminar(pedido_id: int, service: PedidoService = Depends(get_pedido_service
     if not service.eliminar_pedido(pedido_id):
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     return {"mensaje": "Pedido eliminado"}
+
+@router.post("/{pedido_id}/pagar")
+def pagar_pedido(pedido_id: int, session: Session = Depends(get_session)):
+    service = PedidoService(session)
+    try:
+        pedido_actualizado = service.pagar_pedido(pedido_id)
+        return pedido_actualizado
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

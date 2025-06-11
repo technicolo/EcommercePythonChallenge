@@ -1,9 +1,10 @@
 # app/routes/producto_routes.py
 
+import csv
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlmodel import Session
 
 from app.domain.entities.producto_entity import ProductoEntity
 from app.models.producto import Producto
@@ -14,22 +15,9 @@ from app.services.producto_service import ProductoService
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
 
-@router.post("/", response_model=ProductoEntity)
-def crear(producto: ProductoEntity, service: ProductoService = Depends(get_producto_service)):
-    return service.crear_producto(producto)
-
-
 @router.get("/", response_model=List[ProductoEntity])
-def listar_productos(
-    offset: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1),
-    session: Session = Depends(get_session)
-):
-    query = select(Producto).offset(offset).limit(limit)
-    results = session.exec(query).all()
-    # Convertir los modelos a entidades de dominio
-    from app.mappers.producto_mapper import to_entity
-    return [to_entity(p) for p in results]
+def listar_productos(offset: int = 0, limit: int = 10, db: Session = Depends(get_session)):
+    return ProductoService(db).obtener_productos(offset=offset, limit=limit)
 
 
 @router.get("/{producto_id}", response_model=ProductoEntity)
@@ -53,3 +41,15 @@ def eliminar(producto_id: int, service: ProductoService = Depends(get_producto_s
     if not service.eliminar_producto(producto_id):
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return {"mensaje": "Producto eliminado"}
+
+@router.post("/importar-csv")
+def importar_productos_csv(file: UploadFile = File(...), db: Session = Depends(get_session)):
+    contents = file.file.read().decode("utf-8").splitlines()
+    reader = csv.DictReader(contents)
+    productos = [
+        Producto(nombre=row["nombre"], precio=float(row["precio"]), stock=int(row["stock"]))
+        for row in reader
+    ]
+    db.add_all(productos)
+    db.commit()
+    return {"mensaje": f"{len(productos)} productos importados correctamente"}

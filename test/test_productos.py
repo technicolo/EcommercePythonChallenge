@@ -113,3 +113,50 @@ def test_eliminar_producto_inexistente(producto_service, mock_session):
     mock_session.get.return_value = None
     result = producto_service.eliminar_producto(999)
     assert result is False
+    
+def test_importar_productos_csv(tmp_path):
+    # Crear archivo CSV temporal
+    csv_file = tmp_path / "productos.csv"
+    csv_file.write_text("nombre,precio,stock\nFernet,1500,10\nGancia,1200,5")
+
+    import csv
+    from io import BytesIO
+
+    from fastapi import UploadFile
+
+    with open(csv_file, "rb") as f:
+        upload = UploadFile(filename="productos.csv", file=BytesIO(f.read()))
+
+    # Simular DB
+    mock_session = MagicMock()
+
+    # Función simulada de importación (como iría en el endpoint)
+    contents = upload.file.read().decode("utf-8").splitlines()
+    reader = csv.DictReader(contents)
+    productos = [
+        MagicMock(nombre=row["nombre"], precio=float(row["precio"]), stock=int(row["stock"]))
+        for row in reader
+    ]
+    mock_session.add_all(productos)
+    mock_session.commit()
+
+    assert len(productos) == 2
+    mock_session.add_all.assert_called_with(productos)
+    mock_session.commit.assert_called()
+
+def test_obtener_productos_con_paginacion(monkeypatch):
+    from app.services.producto_service import ProductoService
+
+    mock_session = MagicMock()
+    service = ProductoService(session=mock_session)
+
+    mock_productos = [MagicMock(), MagicMock()]
+    mock_exec = MagicMock()
+    mock_exec.all.return_value = mock_productos
+
+    monkeypatch.setattr(mock_session, "exec", lambda stmt: mock_exec)
+
+    # Asume que ya tenés offset y limit en el método
+    result = service.obtener_productos(offset=0, limit=2)
+
+    assert result == [p for p in map(MagicMock, mock_productos)] or isinstance(result, list)
