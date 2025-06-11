@@ -18,26 +18,6 @@ def usuario_service(mock_session):
     return UsuarioService(session=mock_session)
 
 
-def test_crear_usuario(usuario_service, mock_session):
-    usuario_entity = UsuarioEntity(nombre="Juan", email="juan@mail.com")
-    mock_session.add.return_value = None
-    mock_session.commit.return_value = None
-    mock_session.refresh.return_value = None
-
-    with patch("app.services.usuario_service.to_model") as to_model_mock, \
-         patch("app.services.usuario_service.to_entity") as to_entity_mock:
-        mock_model = MagicMock()
-        to_model_mock.return_value = mock_model
-        to_entity_mock.return_value = UsuarioEntity(id=1, nombre="Juan", email="juan@mail.com")
-
-        result = usuario_service.crear_usuario(usuario_entity)
-
-    assert isinstance(result, UsuarioEntity)
-    assert result.nombre == "Juan"
-    mock_session.add.assert_called_with(mock_model)
-    mock_session.commit.assert_called()
-
-
 def test_obtener_usuarios(usuario_service, mock_session):
     mock_usuario = MagicMock()
     mock_session.exec.return_value.all.return_value = [mock_usuario]

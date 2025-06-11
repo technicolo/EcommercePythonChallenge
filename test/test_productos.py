@@ -145,18 +145,26 @@ def test_importar_productos_csv(tmp_path):
     mock_session.commit.assert_called()
 
 def test_obtener_productos_con_paginacion(monkeypatch):
+    from unittest.mock import patch
+
+    from app.domain.entities.producto_entity import ProductoEntity
     from app.services.producto_service import ProductoService
 
     mock_session = MagicMock()
     service = ProductoService(session=mock_session)
 
-    mock_productos = [MagicMock(), MagicMock()]
     mock_exec = MagicMock()
-    mock_exec.all.return_value = mock_productos
-
+    mock_exec.all.return_value = [MagicMock(), MagicMock()]
     monkeypatch.setattr(mock_session, "exec", lambda stmt: mock_exec)
 
-    # Asume que ya tenés offset y limit en el método
-    result = service.obtener_productos(offset=0, limit=2)
+    with patch("app.services.producto_service.to_entity") as to_entity_mock:
+        to_entity_mock.side_effect = [
+            ProductoEntity(id=1, nombre="Pepsi", precio=500.0, stock=10),
+            ProductoEntity(id=2, nombre="Coca-Cola", precio=600.0, stock=15),
+        ]
 
-    assert result == [p for p in map(MagicMock, mock_productos)] or isinstance(result, list)
+        result = service.obtener_productos(offset=0, limit=2)
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert result[0].nombre == "Pepsi"

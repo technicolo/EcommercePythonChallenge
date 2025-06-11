@@ -28,7 +28,7 @@ def test_crear_pedido_usuario_existente(pedido_service, mock_session):
     mock_session.commit.return_value = None
     mock_session.refresh.return_value = None
 
-    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_pedido.fecha, total=0)):
+    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_pedido.fecha, total=0, estado="pendiente")):
         result = pedido_service.crear_pedido(PedidoCreate(usuario_id=1))
 
     assert isinstance(result, PedidoEntity)
@@ -42,10 +42,20 @@ def test_obtener_pedidos(pedido_service, mock_session):
     mock_model.total = 100.0
     mock_model.fecha = datetime.utcnow()
     mock_model.id = 1
+    mock_model.estado = "pendiente"  # 👈 necesario
 
     mock_session.exec.return_value.all.return_value = [mock_model]
 
-    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_model.fecha, total=100.0)):
+    with patch(
+        "app.services.pedido_service.to_entity",
+        return_value=PedidoEntity(
+            id=1,
+            usuario_id=1,
+            fecha=mock_model.fecha,
+            total=100.0,
+            estado=mock_model.estado  # 👈 necesario
+        )
+    ):
         result = pedido_service.obtener_pedidos()
 
     assert isinstance(result, list)
@@ -58,8 +68,9 @@ def test_actualizar_pedido_existente(pedido_service, mock_session):
     mock_pedido.usuario_id = 1
     mock_pedido.id = 1
     mock_session.get.return_value = mock_pedido
+    
 
-    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=2, fecha=datetime.utcnow(), total=0)):
+    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=2, fecha=datetime.utcnow(), total=0, estado="pendiente")):
         result = pedido_service.actualizar_pedido(1, PedidoCreate(usuario_id=2))
 
     assert isinstance(result, PedidoEntity)
@@ -84,10 +95,11 @@ def test_obtener_pedidos_por_usuario(pedido_service, mock_session):
     mock_model.total = 100.0
     mock_model.fecha = datetime.utcnow()
     mock_model.id = 1
+    mock_model.estado = "pendiente" 
 
     mock_session.exec.return_value.all.return_value = [mock_model]
 
-    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_model.fecha, total=100.0)):
+    with patch("app.services.pedido_service.to_entity", return_value=PedidoEntity(id=1, usuario_id=1, fecha=mock_model.fecha, total=100.0, estado="pendiente"  )):
         result = pedido_service.obtener_pedidos_por_usuario(1)
 
     assert isinstance(result, list)

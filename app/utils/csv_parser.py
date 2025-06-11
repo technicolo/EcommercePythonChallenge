@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import HTTPException
 
-from app.domain.producto import Producto
+from app.models.producto import Producto
 
 
 def parse_csv_to_productos(file_content: str) -> List[Producto]:
