@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.middleware.middleware import CorrelationIdMiddleware
 from app.persistence.db import create_db_and_tables
 from app.routes import (
     auth_routes,
@@ -22,7 +23,7 @@ app = FastAPI(
 def on_startup():
     create_db_and_tables()
 
-
+app.add_middleware(CorrelationIdMiddleware)
 app.include_router(producto_routes.router)
 app.include_router(auth_routes.router)
 app.include_router(usuario_routes.router)
