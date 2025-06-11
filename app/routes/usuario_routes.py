@@ -13,10 +13,6 @@ from app.services.usuario_service import UsuarioService
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 
-@router.post("/", response_model=UsuarioEntity)
-def crear(usuario: UsuarioEntity, service: UsuarioService = Depends(get_usuario_service)):
-    return service.crear_usuario(usuario)
-
 @router.get("/", response_model=List[UsuarioEntity])
 def listar(service: UsuarioService = Depends(get_usuario_service)):
     return service.obtener_usuarios()

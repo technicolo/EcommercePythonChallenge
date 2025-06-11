@@ -13,6 +13,7 @@ from app.services.usuario_service import UsuarioService
 def get_pedido_service(session: Session = Depends(get_session)) -> PedidoService:
     return PedidoService(session)
 
+
 def get_producto_service(session: Session = Depends(get_session)) -> ProductoService:
     return ProductoService(session)
 

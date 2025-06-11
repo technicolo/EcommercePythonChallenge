@@ -6,9 +6,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
+from app.dependencies.auth import get_current_user
 from app.domain.entities.pedido_entity import PedidoEntity
 from app.models.detalle_pedido import PedidoConDetallesDTO
 from app.models.pedido import PedidoCreate
+from app.models.usuario import Usuario
 from app.persistence.db import get_session
 from app.services.dependencies import get_pedido_service
 from app.services.pedido_service import PedidoService
@@ -17,8 +19,14 @@ router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
 
 @router.post("/", response_model=PedidoEntity)
-def crear(pedido: PedidoCreate, service: PedidoService = Depends(get_pedido_service)):
+def crear_pedido(
+    pedido: PedidoCreate,
+    service: PedidoService = Depends(get_pedido_service),
+    user: Usuario = Depends(get_current_user),
+):
     return service.crear_pedido(pedido)
+
+
 
 
 @router.get("/", response_model=List[PedidoEntity])

@@ -5,20 +5,13 @@ from typing import List, Optional
 from sqlmodel import Session, select
 
 from app.domain.entities.usuario_entity import UsuarioEntity
-from app.mappers.usuario_mapper import to_entity, to_model
+from app.mappers.usuario_mapper import to_entity
 from app.models.usuario import Usuario
 
 
 class UsuarioService:
     def __init__(self, session: Session):
         self.session = session
-
-    def crear_usuario(self, usuario: UsuarioEntity) -> UsuarioEntity:
-        model = to_model(usuario)
-        self.session.add(model)
-        self.session.commit()
-        self.session.refresh(model)
-        return to_entity(model)
 
     def obtener_usuarios(self) -> List[UsuarioEntity]:
         results = self.session.exec(select(Usuario)).all()
