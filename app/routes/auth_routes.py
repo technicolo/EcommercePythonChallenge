@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app.models.dto.login_dto import LoginDTO
 from app.models.dto.register_dto import RegisterDTO
-from app.models.dto.usuarioDTO import LoginDTO
 from app.models.usuario import Usuario
 from app.persistence.db import get_session
 from app.utils.security import create_access_token, hash_password, verify_password

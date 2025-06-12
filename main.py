@@ -10,14 +10,15 @@ from app.persistence.db import create_db_and_tables
 from app.routes import (
     auth_routes,
     detalle_pedido_routes,
-    pedido_routes,
     producto_routes,
     usuario_routes,
 )
+from app.routes.v1 import pedido_routes_v1
+from app.routes.v2 import pedido_routes_v2
 from app.utils.ProblemDetailsException import problem_detail_response
 
 logging.basicConfig(
-    level=logging.INFO,  # o DEBUG si estás en desarrollo
+    level=logging.INFO,  
     format='[%(asctime)s] [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
 )
@@ -37,7 +38,9 @@ app.add_middleware(CorrelationIdMiddleware)
 app.include_router(producto_routes.router)
 app.include_router(auth_routes.router)
 app.include_router(usuario_routes.router)
-app.include_router(pedido_routes.router)
+app.include_router(pedido_routes_v1.router)
+app.include_router(pedido_routes_v2.router)
+
 app.include_router(detalle_pedido_routes.router)
 
 @app.exception_handler(StarletteHTTPException)
