@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
@@ -13,6 +15,14 @@ from app.routes import (
     usuario_routes,
 )
 from app.utils.ProblemDetailsException import problem_detail_response
+
+logging.basicConfig(
+    level=logging.INFO,  # o DEBUG si estás en desarrollo
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="E-commerce API",

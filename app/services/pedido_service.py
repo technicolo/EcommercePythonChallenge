@@ -1,10 +1,13 @@
 # app/services/pedido_service.py
 
+import logging
 from datetime import datetime
 from functools import cache
 from typing import List, Optional
 
-from fastapi import HTTPException
+from fastapi import (
+    HTTPException,  # necesario para usar request.state
+)
 from sqlmodel import Session, select
 
 from app.domain.entities.pedido_entity import PedidoEntity
@@ -18,6 +21,7 @@ from app.models.pedido import Pedido, PedidoCreate
 from app.models.usuario import Usuario
 from app.utils.ProblemDetailsException import problem_detail_response
 
+logger = logging.getLogger(__name__)
 
 class PedidoService:
     def __init__(self, session: Session):
@@ -40,13 +44,19 @@ class PedidoService:
         return to_entity(model)
 
     def obtener_pedidos(self, fecha_inicio: Optional[datetime] = None, fecha_fin: Optional[datetime] = None) -> List[PedidoEntity]:
+        logger.info(f"Consultando pedidos - Fecha inicio: {fecha_inicio}, Fecha fin: {fecha_fin}")
+    
         query = select(Pedido)
         if fecha_inicio:
             query = query.where(Pedido.fecha >= fecha_inicio)
         if fecha_fin:
             query = query.where(Pedido.fecha <= fecha_fin)
+    
         results = self.session.exec(query).all()
+    
+        logger.info(f"{len(results)} pedidos encontrados en el rango solicitado.")
         return [to_entity(p) for p in results]
+    
 
     def obtener_pedido_con_detalles(self, pedido_id: int) -> PedidoConDetallesDTO:
         pedido = self.session.get(Pedido, pedido_id)
