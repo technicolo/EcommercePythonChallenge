@@ -154,3 +154,37 @@ Ir a: http://127.0.0.1:8000/docs
 
 Ahí vas a ver Swagger UI con todos tus endpoints
 
+## 🚀 Cómo ejecutar el proyecto localmente (modo desarrollo)
+Nota: el challenge fue echoc on puro python sin django ni nada raro advertidos estan quienes ejecuten este codigo.
+
+Estas instrucciones son para desarrolladores que deseen levantar el proyecto en su entorno local usando un entorno virtual.
+
+### ✅ Requisitos previos
+
+- Python 3.11+
+- Git (opcional, si clonas el repo)
+- pip (gestor de paquetes de Python)
+
+---
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/technicolo/EcommercePythonChallenge.git
+cd EcommercePythonChallenge
+ 2. Crear entorno virtual y activarlo
+
+python -m venv venv
+En Windows:
+
+venv\Scripts\activate
+
+📦 3. Instalar dependencias
+pip install -r requirements.txt
+
+4. Crear las tablas y cargar datos de prueba
+python database_cleaner.py  # Opcional: limpia las tablas
+python database_seeder.py   # Carga usuarios, productos, pedidos y detalles
+
+5. Ejecutar la app
+uvicorn main:app --reload
