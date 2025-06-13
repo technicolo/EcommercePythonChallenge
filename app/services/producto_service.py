@@ -47,5 +47,3 @@ class ProductoService:
         self.session.delete(producto)
         self.session.commit()
         return True
-
-

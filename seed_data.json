@@ -1,0 +1,50 @@
+{
+  "usuarios": [
+    {
+      "nombre": "Ana Torres",
+      "email": "ana@example.com",
+      "password": "1234"
+    },
+    {
+      "nombre": "Carlos Méndez",
+      "email": "carlos@example.com",
+      "password": "1234"
+    }
+  ],
+  "productos": [
+    {
+      "nombre": "Mouse Logitech",
+      "precio": 7500.0,
+      "stock": 10
+    },
+    {
+      "nombre": "Teclado Redragon",
+      "precio": 15000.0,
+      "stock": 5
+    },
+    {
+      "nombre": "Monitor Samsung 24\"",
+      "precio": 60000.0,
+      "stock": 3
+    }
+  ],
+  "pedidos": [
+    {
+      "fecha": "2024-06-01",
+      "estado": "pendiente",
+      "usuario_email": "ana@example.com"
+    }
+  ],
+  "detalles_pedido": [
+    {
+      "pedido_index": 0,
+      "producto_nombre": "Mouse Logitech",
+      "cantidad": 2
+    },
+    {
+      "pedido_index": 0,
+      "producto_nombre": "Teclado Redragon",
+      "cantidad": 1
+    }
+  ]
+}

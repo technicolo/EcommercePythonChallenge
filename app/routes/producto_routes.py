@@ -2,7 +2,16 @@
 
 from typing import List
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Path, UploadFile
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    File,
+    HTTPException,
+    Path,
+    UploadFile,
+    status,
+)
 from sqlmodel import Session
 
 from app.domain.entities.producto_entity import ProductoEntity
@@ -51,6 +60,11 @@ def actualizar_productos_lote(
     db.commit()
     return [to_entity(p) for p in actualizados]
 
+@router.post("/productos", response_model=ProductoEntity, status_code=status.HTTP_201_CREATED)
+def crear_producto(producto: ProductoEntity, session: Session = Depends(get_session)):
+    servicio = ProductoService(session)
+    nuevo_producto = servicio.crear_producto(producto)
+    return nuevo_producto
 
 @router.delete("/lote")
 def eliminar_productos_lote(
