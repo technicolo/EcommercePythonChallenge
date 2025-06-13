@@ -43,13 +43,32 @@ class DetallePedidoService:
         detalle = self.session.get(DetallePedido, detalle_id)
         if not detalle:
             return None
+    
+        # 1. Calcular valor anterior
+        valor_anterior = detalle.cantidad * detalle.precio_unitario
+    
+        # 2. Actualizar campos
         detalle.pedido_id = datos.pedido_id
         detalle.producto_id = datos.producto_id
         detalle.cantidad = datos.cantidad
         detalle.precio_unitario = datos.precio_unitario
+    
+        # 3. Calcular nuevo valor
+        valor_nuevo = detalle.cantidad * detalle.precio_unitario
+    
+        # 4. Ajustar total del pedido
+        pedido = self.session.get(Pedido, detalle.pedido_id)
+        if not pedido:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    
+        pedido.total = pedido.total - valor_anterior + valor_nuevo
+    
+        # 5. Guardar cambios
         self.session.commit()
         self.session.refresh(detalle)
+    
         return to_entity(detalle)
+
 
     def eliminar_detalle(self, detalle_id: int) -> bool:
         detalle = self.session.get(DetallePedido, detalle_id)

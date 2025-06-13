@@ -129,3 +129,28 @@ Se detallan a continuación los features opcionales implementados y su ubicació
 
 26. Migraciones de base de datos gestionadas con Alembic (`alembic/versions/...`).
 
+##Instrucciones para correr el proyecto con Docker
+
+1. Ubicarse en la raíz del proyecto
+Asegurate de estar en la carpeta donde está tu Dockerfile.
+cd E:\proyectos\EcommercePythonChallenge
+2. Guarda todos los archivos
+Presioná Ctrl + K S en VS Code (guardar todo).
+
+O asegurate que no haya archivos abiertos con un ● sin guardar.
+
+3. Construir la imagen Docker
+docker build -t ecommerce-app .
+4. Ejecutá un contenedor
+docker run -p 8000:8000 ecommerce-app
+Esto:
+
+Expone el puerto 8000 del contenedor en localhost:8000
+
+Ejecuta tu FastAPI con los endpoints funcionando
+
+5. Probalo
+Ir a: http://127.0.0.1:8000/docs
+
+Ahí vas a ver Swagger UI con todos tus endpoints
+

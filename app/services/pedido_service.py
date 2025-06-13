@@ -139,10 +139,42 @@ class PedidoService:
             select(DetallePedido).where(DetallePedido.pedido_id == pedido_id)
         ).all()
 
-        total = self.calcular_total_cached(tuple(detalles))
+        total = sum(d.cantidad * d.precio_unitario for d in detalles)
         pedido.total = total
         pedido.estado = "pagado"
         self.session.add(pedido)
         self.session.commit()
         self.session.refresh(pedido)
         return pedido
+    
+    def obtener_pedidos_con_detalles_por_usuario(self, usuario_id: int) -> List[PedidoConDetallesDTO]:
+        pedidos = self.session.exec(
+            select(Pedido).where(Pedido.usuario_id == usuario_id)
+        ).all()
+    
+        resultado = []
+        for pedido in pedidos:
+            detalles = self.session.exec(
+                select(DetallePedido).where(DetallePedido.pedido_id == pedido.id)
+            ).all()
+    
+            detalles_dto = [
+                DetallePedidoDTO(
+                    producto_id=d.producto_id,
+                    cantidad=d.cantidad,
+                    precio_unitario=d.precio_unitario
+                ) for d in detalles
+            ]
+    
+            dto = PedidoConDetallesDTO(
+                id=pedido.id,
+                usuario_id=pedido.usuario_id,
+                fecha=pedido.fecha,
+                estado=pedido.estado,
+                total=pedido.total,
+                detalles=detalles_dto
+            )
+    
+            resultado.append(dto)
+    
+        return resultado

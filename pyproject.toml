@@ -4,3 +4,22 @@ line-length = 88
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["E501"]
+
+[tool.poetry]
+name = "ecommerce-api"
+version = "0.1.0"
+description = "API de e-commerce técnico para desafío"
+authors = ["Francisco <franfranre19@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "*"
+uvicorn = "*"
+sqlmodel = "*"
+pydantic = {extras = ["email"], version = "*"}
+python-dotenv = "*"
+passlib = "*"
+bcrypt = "*"
+python-jose = "*"
+alembic = "*"
+python-multipart = "*"
